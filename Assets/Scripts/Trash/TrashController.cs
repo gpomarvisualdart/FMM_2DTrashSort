@@ -11,11 +11,14 @@ public class TrashController : MonoBehaviour
     [SerializeField] int trashType;
     [SerializeField] List<GameObject> listOfTypes = new List<GameObject>();
     [SerializeField] KeyCode currentKey;
+    [SerializeField] RuntimeAnimatorController idleController;
+    [SerializeField] RuntimeAnimatorController destroyedController;
     public KeyCode GetCurrentKeyCode() => currentKey;
     LayerMask trashLayer;
     public Collider2D trashCollider;
     public Vector3 colliderSize;
     TrashSpawnerGameObject spawner;
+
 
     private void OnEnable()
     {
@@ -34,6 +37,7 @@ public class TrashController : MonoBehaviour
 
         if (transform.position.y <= -4.45f)
         {
+            GameManager.instance.OnSortCorrect(false, trashType);
             ChangeType();
             ChangePosition();
         }
@@ -82,22 +86,45 @@ public class TrashController : MonoBehaviour
         while (newType == trashType)
         {
             newType = Random.Range(0, TrashTypes.TrashKeys.Count);
-            
         }
         if (newType > listOfTypes.Count) return;
         if (newType > TrashTypes.TrashKeys.Count) return;
         listOfTypes[trashType].SetActive(false);
-        KeyCode value = KeyCode.None;
         trashType = newType;
-        if (TrashTypes.TrashKeys.TryGetValue(newType, out value)) currentKey = value;
+        KeyCode nextCode = KeyCode.None;
+        if (TrashTypes.TrashKeys.TryGetValue(newType, out nextCode)) currentKey = nextCode;
         listOfTypes[trashType].SetActive(true);
     }
 
 
-    public void ActivateSort(bool isRight)
+    Coroutine CO_DestroyedAnimation;
+    IEnumerator DestroyedAnimation()
     {
+        var flt_Count = 0f;
+        var flt_TimeMax = 0.26f;
+
+        SendControllerToAnimatorEvent?.Invoke(destroyedController);
+        while (flt_Count < flt_TimeMax)
+        {
+            flt_Count += Time.deltaTime;
+            Debug.Log(flt_Count);
+            yield return null;
+        }
+
+        CO_DestroyedAnimation = null;
+        SendControllerToAnimatorEvent?.Invoke(idleController);
         ChangeType();
         ChangePosition();
-        GameManager.instance.OnSortCorrect(isRight);
+    }
+
+
+    public event Action<RuntimeAnimatorController> SendControllerToAnimatorEvent;
+    public void ActivateSort(bool isCorrect)
+    {
+        Debug.Log(isCorrect);
+        GameManager.instance.OnSortCorrect(isCorrect, trashType);
+        if (CO_DestroyedAnimation != null) return;
+
+        CO_DestroyedAnimation = StartCoroutine(DestroyedAnimation());
     }
 }

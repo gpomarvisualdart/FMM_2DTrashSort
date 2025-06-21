@@ -31,7 +31,6 @@ public class FiringLineController : MonoBehaviour
     {
         Collider2D[] colliders = new Collider2D[8];
         int overlaps = Physics2D.OverlapBoxNonAlloc(transform.position, overlapSize, transform.eulerAngles.z, colliders, trashLayer);
-        Debug.Log(overlaps);
 
         if (overlaps < 1) return;
         TrashController fallBackFalse = null;
